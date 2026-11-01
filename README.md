@@ -41,6 +41,6 @@
 
 ## 문제 추가·수정
 1. `tools/build.py` 안의 문제 목록을 편집합니다. (`mc` 객관식, `grp` 보기를 공유하는 묶음, `short` 단답, `shorts` 빈칸이 여러 개인 단답, `lst` 나열형 — need 가 2 이상이면 칸이 need 개 생김, `blanks=["M","N"…]` 로 칸 앞 글자 지정)
-2. `python3 tools/build.py` → `questions.js` 재생성 (id 중복, 정답 번호 범위, 그림 파일 존재 여부 검증 포함)
+2. `python3 tools/build.py` → `questions.js` 재생성 (id 중복, 정답 번호 범위, 그림 파일 존재 여부 검증 포함). 이때 `index.html` 의 `?v=` 값도 파일 내용에 맞춰 자동으로 바뀌므로, `style.css`·`app.js` 등을 고친 뒤에도 빌드를 한 번 실행하고 올리면 사파리에서 새로고침만 해도 바뀐 내용이 보입니다.
 
 새 그림은 `img/{문제번호}.jpg` 로 넣고, `mc(..., fig=True)` 또는 `short(..., fig=True)` 로 연결합니다.

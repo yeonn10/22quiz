@@ -470,6 +470,25 @@ def validate():
     return errs
 
 
+def stamp():
+    """index.html 의 ?v=... 를 css/js 내용 해시로 갱신한다.
+    파일 내용이 바뀌면 주소가 바뀌므로 사파리 등에서 새로고침만 해도 바뀐 파일을 새로 받는다."""
+    import hashlib
+    h = hashlib.md5()
+    for name in ("style.css", "engine.js", "app.js", "questions.js"):
+        with open(os.path.join(ROOT, name), "rb") as f:
+            h.update(f.read())
+    ver = h.hexdigest()[:8]
+    path = os.path.join(ROOT, "index.html")
+    with open(path, encoding="utf-8") as f:
+        html = f.read()
+    new = re.sub(r"(\.(?:css|js))\?v=[0-9A-Za-z]+", lambda m: m.group(1) + "?v=" + ver, html)
+    if new != html:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(new)
+    print("캐시 버전:", ver)
+
+
 def clean(q):
     return {k: v for k, v in q.items() if v not in (None, False, "")}
 
@@ -491,6 +510,7 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         f.write("/* 자동 생성 파일 — tools/build.py 로 만들어집니다. 직접 수정하지 마세요. */\n")
         f.write("window.QUIZ_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n")
+    stamp()
     mcn = sum(1 for q in Q if q["kind"] == "mc")
     print("OK: %d문항 (객관식 %d · 주관식 %d) → %s" % (len(Q), mcn, len(Q) - mcn, out))
     per = {}
