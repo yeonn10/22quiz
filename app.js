@@ -94,7 +94,7 @@
 
   function quiz() {
     view = 'quiz'; updCount();
-    var q = cur(), a = Q.ans[q.id], done = !!a, isSA = q.kind === 'sa', multi = !isSA && q.ans.length > 1;
+    var q = cur(), a = Q.ans[q.id], done = !!a, isSA = q.kind === 'sa', multi = !isSA && q.ans.length > 1, nb = isSA ? blanksOf(q) : 0;
     var sel = (!isSA) ? (done ? a.sel : Q.pend) : [];
     var pct = Math.round(Object.keys(Q.ans).length / Q.deck.length * 100);
     var h = '<div class="qhead"><span><a href="#/">← 설정</a>' + (Q.label ? ' · ' + esc(Q.label) : '') + '</span><span>' + (Q.i + 1) + ' / ' + Q.deck.length + '</span></div>' +
@@ -116,11 +116,21 @@
       }).join('');
       if (!done) h += '<div class="row"><button class="primary" id="submit">정답 확인 (Enter)</button></div>';
     } else {
-      var typed = done ? (a.txt || '') : (Q.txt[q.id] || '');
+      var typed = done ? (a.txt || '') : (nb ? '' : (Q.txt[q.id] || ''));
+      var attrs = ' autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
       if (!done) {
-        var hint = q.pool ? (q.anyof ? '하나만 입력' : '쉼표(,)로 구분해서 ' + q.need + '개 입력') : '정답 입력';
-        h += '<input type="text" id="sa" class="sa" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + esc(hint) + '" value="' + esc(typed) + '">' +
-          '<div class="row"><button class="primary" id="submit">정답 확인 (Enter)</button></div>';
+        if (nb) {   // 여러 개를 쓰는 나열형: 칸을 따로 만든다 (순서는 상관없음)
+          var arr = Q.txt[q.id] || [];
+          h += '<div class="blanks">';
+          for (var bi = 0; bi < nb; bi++) {
+            h += '<label class="blank"><span class="bl">' + esc(q.blanks ? q.blanks[bi] : String(bi + 1)) + '</span>' +
+              '<input type="text" class="sa" data-i="' + bi + '"' + attrs + ' value="' + esc(arr[bi] || '') + '"></label>';
+          }
+          h += '</div><div class="sub">칸 순서는 상관없어요. ' + nb + '개를 모두 채우세요.</div>';
+        } else {
+          h += '<input type="text" id="sa" class="sa"' + attrs + ' placeholder="' + (q.pool ? '하나만 입력' : '정답 입력') + '" value="' + esc(typed) + '">';
+        }
+        h += '<div class="row"><button class="primary" id="submit">정답 확인 (Enter)</button></div>';
       } else if (!a.dk) {
         h += '<div class="myans">내 답: <b>' + (typed ? esc(typed) : '(빈칸)') + '</b></div>';
       }
@@ -146,8 +156,14 @@
     app.innerHTML = h;
     app.querySelectorAll('.opt').forEach(function (b) { b.onclick = function () { b.blur(); pick(+b.dataset.o); }; });
     var sb = document.getElementById('submit'); if (sb) sb.onclick = function () { sb.blur(); submit(); };
-    var si = document.getElementById('sa');
-    if (si) { si.oninput = function () { Q.txt[q.id] = si.value; }; si.focus({ preventScroll: true }); }
+    var inputs = app.querySelectorAll('input.sa');
+    inputs.forEach(function (inp) {
+      inp.oninput = function () {
+        if (nb) { var arr2 = Q.txt[q.id] || []; arr2[+inp.dataset.i] = inp.value; Q.txt[q.id] = arr2; }
+        else Q.txt[q.id] = inp.value;
+      };
+    });
+    if (inputs.length) inputs[0].focus({ preventScroll: true });
     var ov = document.getElementById('over'); if (ov) ov.onclick = function (e) { e.target.blur(); override(); };
     document.getElementById('prev').onclick = function (e) { e.target.blur(); move(-1); };
     document.getElementById('next').onclick = function (e) { e.target.blur(); move(1); };
@@ -192,14 +208,25 @@
   function submit() {
     var q = cur(); if (Q.ans[q.id]) return;
     if (q.kind === 'sa') {
-      var el = document.getElementById('sa'), v = el ? el.value : (Q.txt[q.id] || '');
-      Q.txt[q.id] = v;
+      var v = typedText(q, true);
       if (!v.trim()) return toast('답을 입력하세요');
       grade([], false, v);
     } else if (Q.pend.length) grade(Q.pend, false);
     else toast('번호를 먼저 선택하세요');
   }
-  function dontKnow() { var q = cur(); grade([], true, q.kind === 'sa' ? (Q.txt[q.id] || '') : undefined); }
+  /** 칸이 여러 개인 문항은 쉼표로 이어 붙인 문자열로 만든다 (빈 칸은 건너뜀). 화면의 칸 값을 우선 읽는다 */
+  function typedText(q, fromDom) {
+    if (blanksOf(q)) {
+      var arr = Q.txt[q.id] || [];
+      if (fromDom) { arr = Array.from(app.querySelectorAll('input.sa')).map(function (x) { return x.value; }); Q.txt[q.id] = arr; }
+      return arr.map(function (x) { return (x || '').trim(); }).filter(Boolean).join(', ');
+    }
+    var el = fromDom ? document.getElementById('sa') : null, v = el ? el.value : (Q.txt[q.id] || '');
+    Q.txt[q.id] = v;
+    return v;
+  }
+  function dontKnow() { var q = cur(); grade([], true, q.kind === 'sa' ? typedText(q, false) : undefined); }
+  function blanksOf(q) { return (q.pool && !q.anyof && q.need > 1) ? q.need : 0; }
   function toggleBm(force) {
     var q = cur(), has = store.has(q.id);
     if (force === 'add' || (force === undefined && !has)) { store.add(q.id); toast('★ 북마크 추가'); }
@@ -234,7 +261,12 @@
     if (view !== 'quiz' || !Q || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
     var t = e.target.tagName;
     if (t === 'INPUT' || t === 'TEXTAREA') {
-      if (e.key === 'Enter' && e.target.id === 'sa') { e.preventDefault(); submit(); }
+      if (e.key === 'Enter' && e.target.classList.contains('sa')) {
+        e.preventDefault();
+        var all = Array.from(app.querySelectorAll('input.sa')), at = all.indexOf(e.target);
+        if (at >= 0 && at < all.length - 1) all[at + 1].focus();   // 칸이 여러 개면 Enter 로 다음 칸, 마지막 칸에서 제출
+        else submit();
+      }
       return;
     }
     var k = e.key, handled = true;

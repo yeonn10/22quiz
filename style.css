@@ -79,3 +79,9 @@ main.wide{max-width:1180px}
 .optcol .sub{margin:4px 0 8px}
 .chk small{margin-left:4px}
 @media (max-width:640px){.keys{display:none}}
+
+/* 여러 칸 주관식 */
+.blanks{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.blank{display:flex;align-items:center;gap:10px}
+.blank .bl{min-width:1.6em;text-align:center;font-weight:700;color:var(--navy)}
+.blank .sa{margin:0;flex:1}

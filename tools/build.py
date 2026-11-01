@@ -91,11 +91,13 @@ def shorts(base, stem, parts, src=None, exp=None, fig=False):
                  fig=("img/%s.jpg" % base) if fig else None))
 
 
-def lst(base, q, need, pool, src=None, exp=None, anyof=False):
-    """pool: [(표시, [허용답안...]), ...]"""
+def lst(base, q, need, pool, src=None, exp=None, anyof=False, blanks=None):
+    """pool: [(표시, [허용답안...]), ...]
+    need 가 2 이상이면 화면에 need 개의 입력칸이 따로 생긴다 (칸 순서는 상관없음).
+    blanks: 칸 앞에 붙일 글자 목록 (예: 첫글자 힌트). 없으면 1, 2, 3 … 번호"""
     unit, topic = topic_of(base)
     add(dict(id=base, no=base, unit=unit, kind="sa", topic=topic, src=src, q=q, need=need, anyof=anyof,
-             pool=[dict(s=s, a=a) for s, a in pool], exp=exp, fig=None))
+             pool=[dict(s=s, a=a) for s, a in pool], exp=exp, fig=None, blanks=blanks))
 
 
 # ───────────────────────── 1. An overview of immunology ─────────────────────────
@@ -109,8 +111,8 @@ short("1-4", "아래 기술의 용어를 영어 한 단어로 쓰시오.\nA pouc
 mc("1-5", "Macrophage 의 origin 은?", ["Stem cell", "Dendritic cell", "Monocyte", "Lymphocyte"], [3], src="23, 22")
 mc("1-6", "Which of the following play a role as a garbage collector?",
    ["Neutrophils", "Helper T cells", "Natural killer cells", "Killer T cells", "Antigen presenting cells", "Macrophages"], [6], src="23, 22")
-lst("1-7", "Innate team 의 player 5 개를 영어 단수형으로 쓰시오. (답칸에 아래 제시된 첫글자 포함해서 쓰시오.)\nM_______\nN_______\nD_______\nC_______\nN_______",
-    5, [("macrophage", ["macrophage"]), ("neutrophil", ["neutrophil"]), ("dendritic cell", ["dendritic cell"]),
+lst("1-7", "Innate team 의 player 5 개를 영어 단수형으로 쓰시오. (답칸에 아래 제시된 첫글자 포함해서 쓰시오.)",
+    5, blanks=["M", "N", "D", "C", "N"], pool=[("macrophage", ["macrophage"]), ("neutrophil", ["neutrophil"]), ("dendritic cell", ["dendritic cell"]),
         ("complement", ["complement"]), ("NK cell (natural killer cell)", ["NK cell", "natural killer cell"])], src="23, 22")
 mc("1-8", "Interleukin 2 와 IFN-γ 를 생산하여 분비하는 세포는?",
    ["Macrophage", "Helper T cell", "Dendritic cell", "B cell", "Neutrophil", "Killer T cell"], [2], src="23, 22",
